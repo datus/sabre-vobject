@@ -17,7 +17,7 @@ namespace Sabre\VObject;
  * @author Evert Pot (http://www.rooftopsolutions.nl/)
  * @license http://code.google.com/p/sabredav/wiki/License Modified BSD License
  */
-class Property extends Node {
+abstract class Property extends Node {
 
     /**
      * Propertyname
@@ -43,11 +43,11 @@ class Property extends Node {
     public $parameters = array();
 
     /**
-     * Property value
+     * Default delimiter for encoding properties with multiple values.
      *
      * @var string
      */
-    public $value;
+    protected $delimiter = ';';
 
     /**
      * If properties are added to this map, they will be automatically mapped
@@ -99,9 +99,38 @@ class Property extends Node {
         if (isset(self::$classMap[$shortName])) {
             return new self::$classMap[$shortName]($name, $value, $parameters);
         } else {
-            return new self($name, $value, $parameters);
+            return new Property\Text($name, $value, $parameters);
         }
 
+    }
+
+    /**
+     * Creates a new property, based on a raw value as it may be embedded
+     * within a vCard or iCalendar object.
+     *
+     * No de-escaping has been done.
+     *
+     * @param string $name
+     * @param string $value
+     * @param array $parameters
+     * @return Property
+     */
+    static public function createFromRaw($name, $value, array $parameters = array()) {
+
+        $name = strtoupper($name);
+        $shortName = $name;
+        $group = null;
+        if (strpos($shortName,'.')!==false) {
+            list($group, $shortName) = explode('.', $shortName);
+        }
+
+        if (isset(self::$classMap[$shortName])) {
+            $class = self::$classMap[$shortName];
+            return $class::deserialize($name, $value, $parameters);
+        } else {
+            // Defaulting to TEXT properties.
+            return Property\Text::deserialize($name, $value, $parameters);
+        }
     }
 
     /**
@@ -146,16 +175,24 @@ class Property extends Node {
     }
 
     /**
-     * Updates the internal value
+     * Updates the internal value.
      *
-     * @param string $value
+     * The value is assumed to be unescaped. To set a compound value (multiple
+     * components) pass the value as an array.
+     *
+     * @param string|array $value
      * @return void
      */
-    public function setValue($value) {
+    abstract public function setValue($value);
 
-        $this->value = $value;
-
-    }
+    /**
+     * Returns the current value.
+     *
+     * If the property has multiple values, this method will return an array.
+     *
+     * @return string|array
+     */
+    abstract public function getValue();
 
     /**
      * Turns the object back into a serialized blob.
@@ -173,15 +210,7 @@ class Property extends Node {
 
         }
 
-        $src = array(
-            '\\',
-            "\n",
-        );
-        $out = array(
-            '\\\\',
-            '\n',
-        );
-        $str.=':' . str_replace($src, $out, $this->value);
+        $str.=':' . $this->serializeValue();
 
         $out = '';
         while(strlen($str)>0) {
@@ -196,6 +225,89 @@ class Property extends Node {
         }
 
         return $out;
+    }
+
+    /**
+     * Serializes the value for use in an iCalendar of vCard blob.
+     *
+     * @return string
+     */
+    public function serializeValue() {
+
+        $value = $this->getValue();
+        if (!is_array($value)) {
+            $value = array($value);
+        }
+
+        $escapeMap = array(
+            '\\' => '\\\\',
+            ';'  => '\;',
+            ','  => '\,',
+            "\n" => '\n',
+        );
+
+        foreach($value as $k=>$subValue) {
+
+            $value[$k] = strtr( $subValue, $escapeMap );
+
+        }
+
+        return implode($this->delimiter, $value);
+
+    }
+
+    /**
+     * Deserializes a string and return a Property object.
+     *
+     * @param string $str
+     * @param string $value
+     * @param array $parameters
+     * @return Property
+     */
+    public function deserialize($name, $value, array $parameters) {
+
+        // Tiny parser. Hope it's not too slow
+        $output = array();
+
+        $lastValue = '';
+
+        for($pos = 0; $pos < strlen($value); $pos++) {
+
+            if ($value[$pos]==='\\') {
+               // We encountered an escape character, so we need to grab
+                // the next character to find out it's meaning.
+                switch($value[$pos+1]) {
+                    case '\n' :
+                    case '\N' :
+                        $lastValue.="\n";
+                        break;
+                    // This captures a \; \, \\ and any other char.
+                    default :
+                        $lastValue.=$value[$pos+1];
+                        break;
+                }
+
+                // Increment the position 1 extra.
+                $pos++;
+
+            } elseif ($value[$pos]===$this->delimiter) {
+
+                // Multi-value separator
+                $output[] = $lastValue;
+                $lastValue='';
+
+            } else {
+
+                // Everything else
+                $lastValue.=$value[$pos];
+
+            }
+
+        }
+
+        $output[] = $lastValue;
+
+        return new self($name, $output, $parameters);
 
     }
 
@@ -347,7 +459,7 @@ class Property extends Node {
      */
     public function __toString() {
 
-        return (string)$this->value;
+        return (string)$this->getValue();
 
     }
 

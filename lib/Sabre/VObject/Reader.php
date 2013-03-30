@@ -123,9 +123,6 @@ class Reader {
 
         }
 
-        // Properties
-        //$result = preg_match('/(?P<name>[A-Z0-9-]+)(?:;(?P<parameters>^(?<!:):))(.*)$/',$line,$matches);
-
         if ($options & self::OPTION_FORGIVING) {
             $token = '[A-Z0-9-\._]+';
         } else {
@@ -145,24 +142,14 @@ class Reader {
         }
 
         $propertyName = strtoupper($matches['name']);
-        $propertyValue = preg_replace_callback('#(\\\\(\\\\|N|n))#',function($matches) {
-            if ($matches[2]==='n' || $matches[2]==='N') {
-                return "\n";
-            } else {
-                return $matches[2];
-            }
-        }, $matches['value']);
+        $propertyValue = $matches['value'];
 
-        $obj = Property::create($propertyName, $propertyValue);
-
+        $parameters = array();
         if ($matches['parameters']) {
-
-            foreach(self::readParameters($matches['parameters']) as $param) {
-                $obj->add($param);
-            }
-
+            $parameters = self::readParameters($matches['parameters']);
         }
 
+        $obj = Property::createFromRaw($propertyName, $propertyValue, $parameters);
         return $obj;
 
 
