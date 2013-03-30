@@ -48,13 +48,13 @@ class ComponentTest extends \PHPUnit_Framework_TestCase {
 
         $comp = new Component('VCARD');
 
-        $sub = new Property('GROUP1.EMAIL','1@1.com');
+        $sub = new Property\Text('GROUP1.EMAIL','1@1.com');
         $comp->children[] = $sub;
 
-        $sub = new Property('GROUP2.EMAIL','2@2.com');
+        $sub = new Property\Text('GROUP2.EMAIL','2@2.com');
         $comp->children[] = $sub;
 
-        $sub = new Property('EMAIL','3@3.com');
+        $sub = new Property\Text('EMAIL','3@3.com');
         $comp->children[] = $sub;
 
         $emails = $comp->email;
@@ -92,7 +92,7 @@ class ComponentTest extends \PHPUnit_Framework_TestCase {
         $comp->myProp = 'myValue';
 
         $this->assertInstanceOf('Sabre\\VObject\\Property',$comp->MYPROP);
-        $this->assertEquals('myValue',$comp->MYPROP->value);
+        $this->assertEquals('myValue',$comp->MYPROP->getValue());
 
 
     }
@@ -105,7 +105,7 @@ class ComponentTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertEquals(1,count($comp->children));
         $this->assertInstanceOf('Sabre\\VObject\\Property',$comp->MYPROP);
-        $this->assertEquals('myValue',$comp->MYPROP->value);
+        $this->assertEquals('myValue',$comp->MYPROP->getValue());
 
     }
 
@@ -203,7 +203,7 @@ class ComponentTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue($comp->children[0] instanceof Property);
         $this->assertEquals('MYPROP',$comp->children[0]->name);
-        $this->assertEquals('value',$comp->children[0]->value);
+        $this->assertEquals('value',$comp->children[0]->getValue());
 
     }
 
@@ -276,16 +276,6 @@ class ComponentTest extends \PHPUnit_Framework_TestCase {
     /**
      * @expectedException InvalidArgumentException
      */
-    function testAddArgFail3() {
-
-        $comp = new Component('VCALENDAR');
-        $comp->add('hello',array());
-
-    }
-
-    /**
-     * @expectedException InvalidArgumentException
-     */
     function testMagicSetInvalid() {
 
         $comp = new Component('VCALENDAR');
@@ -339,7 +329,7 @@ class ComponentTest extends \PHPUnit_Framework_TestCase {
 
         // Note that 'myProp' is ignored here.
         $comp->children = array(
-            new Property('FOO','BAR'),
+            new Property\Text('FOO','BAR'),
             new Component('VTODO')
         );
 

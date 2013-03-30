@@ -6,26 +6,17 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testToString() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $this->assertEquals('PROPNAME', $property->name);
-        $this->assertEquals('propvalue', $property->value);
+        $this->assertEquals('propvalue', $property->getValue());
         $this->assertEquals('propvalue', $property->__toString());
         $this->assertEquals('propvalue', (string)$property);
 
     }
 
-    /**
-     * @expectedException InvalidArgumentException
-     */
-    public function testCreateNonScalar() {
-
-        $property = new Property('propname',array());
-
-    }
-
     public function testParameterExists() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property->parameters[] = new Parameter('paramname','paramvalue');
 
         $this->assertTrue(isset($property['PARAMNAME']));
@@ -36,7 +27,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testParameterGet() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property->parameters[] = new Parameter('paramname','paramvalue');
 
         $this->assertInstanceOf('Sabre\\VObject\\Parameter',$property['paramname']);
@@ -45,7 +36,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testParameterNotExists() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property->parameters[] = new Parameter('paramname','paramvalue');
 
         $this->assertInternalType('null',$property['foo']);
@@ -54,7 +45,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testParameterMultiple() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property->parameters[] = new Parameter('paramname','paramvalue');
         $property->parameters[] = new Parameter('paramname','paramvalue');
 
@@ -65,13 +56,13 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testSetParameterAsString() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property['paramname'] = 'paramvalue';
 
         $this->assertEquals(1,count($property->parameters));
         $this->assertInstanceOf('Sabre\\VObject\\Parameter', $property->parameters[0]);
         $this->assertEquals('PARAMNAME',$property->parameters[0]->name);
-        $this->assertEquals('paramvalue',$property->parameters[0]->value);
+        $this->assertEquals('paramvalue',$property->parameters[0]->getValue());
 
     }
 
@@ -80,14 +71,14 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
      */
     public function testSetParameterAsStringNoKey() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property[] = 'paramvalue';
 
     }
 
     public function testSetParameterObject() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $param = new Parameter('paramname','paramvalue');
 
         $property[] = $param;
@@ -102,7 +93,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
      */
     public function testSetParameterObjectWithKey() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $param = new Parameter('paramname','paramvalue');
 
         $property['key'] = $param;
@@ -115,14 +106,14 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
      */
     public function testSetParameterObjectRandomObject() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property[] = new \StdClass();
 
     }
 
     public function testUnsetParameter() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $param = new Parameter('paramname','paramvalue');
         $property->parameters[] = $param;
 
@@ -133,7 +124,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testParamCount() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $param = new Parameter('paramname','paramvalue');
         $property->parameters[] = $param;
         $property->parameters[] = clone $param;
@@ -144,7 +135,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testSerialize() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
 
         $this->assertEquals("PROPNAME:propvalue\r\n",$property->serialize());
 
@@ -152,7 +143,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testSerializeParam() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property->parameters[] = new Parameter('paramname','paramvalue');
         $property->parameters[] = new Parameter('paramname2','paramvalue2');
 
@@ -162,7 +153,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testSerializeNewLine() {
 
-        $property = new Property('propname',"line1\nline2");
+        $property = new Property\Text('propname',"line1\nline2");
 
         $this->assertEquals("PROPNAME:line1\\nline2\r\n",$property->serialize());
 
@@ -171,7 +162,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
     public function testSerializeLongLine() {
 
         $value = str_repeat('!',200);
-        $property = new Property('propname',$value);
+        $property = new Property\Text('propname',$value);
 
         $expected = "PROPNAME:" . str_repeat('!',66) . "\r\n " . str_repeat('!',74) . "\r\n " . str_repeat('!',60) . "\r\n";
 
@@ -182,7 +173,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
     public function testSerializeUTF8LineFold() {
 
         $value = str_repeat('!',65) . "\xc3\xa4bla"; // inserted umlaut-a
-        $property = new Property('propname', $value);
+        $property = new Property\Text('propname', $value);
         $expected = "PROPNAME:" . str_repeat('!',65) . "\r\n \xc3\xa4bla\r\n";
         $this->assertEquals($expected, $property->serialize());
 
@@ -191,7 +182,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
     public function testGetIterator() {
 
         $it = new ElementList(array());
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $property->setIterator($it);
         $this->assertEquals($it,$property->getIterator());
 
@@ -200,7 +191,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     public function testGetIteratorDefault() {
 
-        $property = new Property('propname','propvalue');
+        $property = new Property\Text('propname','propvalue');
         $it = $property->getIterator();
         $this->assertTrue($it instanceof ElementList);
         $this->assertEquals(1,count($it));
@@ -209,7 +200,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     function testAddScalar() {
 
-        $property = new Property('EMAIL');
+        $property = new Property\Text('EMAIL');
 
         $property->add('myparam','value');
 
@@ -217,13 +208,13 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertTrue($property->parameters[0] instanceof Parameter);
         $this->assertEquals('MYPARAM',$property->parameters[0]->name);
-        $this->assertEquals('value',$property->parameters[0]->value);
+        $this->assertEquals('value',$property->parameters[0]->getValue());
 
     }
 
     function testAddParameter() {
 
-        $prop = new Property('EMAIL');
+        $prop = new Property\Text('EMAIL');
 
         $prop->add(new Parameter('MYPARAM','value'));
 
@@ -234,7 +225,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
 
     function testAddParameterTwice() {
 
-        $prop = new Property('EMAIL');
+        $prop = new Property\Text('EMAIL');
 
         $prop->add(new Parameter('MYPARAM', 'value1'));
         $prop->add(new Parameter('MYPARAM', 'value2'));
@@ -250,7 +241,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
      */
     function testAddArgFail() {
 
-        $prop = new Property('EMAIL');
+        $prop = new Property\Text('EMAIL');
         $prop->add(new Parameter('MPARAM'),'hello');
 
     }
@@ -260,7 +251,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
      */
     function testAddArgFail2() {
 
-        $property = new Property('EMAIL','value');
+        $property = new Property\Text('EMAIL','value');
         $property->add(array());
 
     }
@@ -270,14 +261,14 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
      */
     function testAddArgFail3() {
 
-        $property = new Property('EMAIL','value');
+        $property = new Property\Text('EMAIL','value');
         $property->add('hello',array());
 
     }
 
     function testClone() {
 
-        $property = new Property('EMAIL','value');
+        $property = new Property\Text('EMAIL','value');
         $property['FOO'] = 'BAR';
 
         $property2 = clone $property;
@@ -305,7 +296,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase {
         $result = $property->validate(Property::REPAIR);
 
         $this->assertEquals('Property is not valid UTF-8!', $result[0]['message']);
-        $this->assertEquals('Bla', $property->value);
+        $this->assertEquals('Bla', $property->getValue());
 
     }
 

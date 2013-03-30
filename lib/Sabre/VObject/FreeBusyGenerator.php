@@ -204,7 +204,7 @@ class FreeBusyGenerator {
                                 $duration = DateTimeParser::parseDuration((string)$component->DURATION);
                                 $endTime = clone $startTime;
                                 $endTime->add($duration);
-                            } elseif ($component->DTSTART->getDateType() === Property\DateTime::DATE) {
+                            } elseif ($component->DTSTART instanceof Property\Date) {
                                 $endTime = clone $startTime;
                                 $endTime->modify('+1 day');
                             } else {
@@ -287,17 +287,19 @@ class FreeBusyGenerator {
         $calendar->add($vfreebusy);
 
         if ($this->start) {
+            $this->start->setTimeZone(new \DateTimeZone('UTC'));
             $dtstart = Property::create('DTSTART');
-            $dtstart->setDateTime($this->start,Property\DateTime::UTC);
+            $dtstart->setDateTime($this->start);
             $vfreebusy->add($dtstart);
         }
         if ($this->end) {
+            $this->end->setTimeZone(new \DateTimeZone('UTC'));
             $dtend = Property::create('DTEND');
-            $dtend->setDateTime($this->end,Property\DateTime::UTC);
+            $dtend->setDateTime($this->end);
             $vfreebusy->add($dtend);
         }
         $dtstamp = Property::create('DTSTAMP');
-        $dtstamp->setDateTime(new \DateTime('now'), Property\DateTime::UTC);
+        $dtstamp->setDateTime(new \DateTime('now', new \DateTimeZone('UTC')));
         $vfreebusy->add($dtstamp);
 
         foreach($busyTimes as $busyTime) {

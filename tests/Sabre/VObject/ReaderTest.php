@@ -70,7 +70,7 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
 
     }
 
@@ -81,7 +81,7 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals("Line1\nLine2\nLine3\\Not the 4th line!", $result->value);
+        $this->assertEquals("Line1\nLine2\nLine3\\Not the 4th line!", $result->getValue());
 
     }
 
@@ -90,9 +90,9 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
         $data = "DTSTART:20110529";
         $result = Reader::read($data);
 
-        $this->assertInstanceOf('Sabre\\VObject\\Property\\DateTime', $result);
+        $this->assertInstanceOf('Sabre\\VObject\\Property\\Date', $result);
         $this->assertEquals('DTSTART', $result->name);
-        $this->assertEquals('20110529', $result->value);
+        $this->assertEquals('20110529', $result->getValue());
 
     }
 
@@ -101,9 +101,9 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
         $data = "foo.DTSTART:20110529";
         $result = Reader::read($data);
 
-        $this->assertInstanceOf('Sabre\\VObject\\Property\\DateTime', $result);
+        $this->assertInstanceOf('Sabre\\VObject\\Property\\Date', $result);
         $this->assertEquals('DTSTART', $result->name);
-        $this->assertEquals('20110529', $result->value);
+        $this->assertEquals('20110529', $result->getValue());
 
     }
 
@@ -133,7 +133,7 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals(1, count($result->children));
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result->children[0]);
         $this->assertEquals('PROPNAME', $result->children[0]->name);
-        $this->assertEquals('propValue', $result->children[0]->value);
+        $this->assertEquals('propValue', $result->children[0]->getValue());
 
     }
     function testReadNestedComponent() {
@@ -168,10 +168,10 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
         $this->assertEquals(1, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
-        $this->assertEquals('paramvalue', $result->parameters[0]->value);
+        $this->assertEquals('paramvalue', $result->parameters[0]->getValue());
 
     }
 
@@ -182,11 +182,11 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
         $this->assertEquals(1, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
 
-        $this->assertNull($result->parameters[0]->value);
+        $this->assertNull($result->parameters[0]->getValue());
 
     }
 
@@ -197,10 +197,10 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue:anotherrandomstring', $result->value);
+        $this->assertEquals('propValue:anotherrandomstring', $result->getValue());
         $this->assertEquals(1, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
-        $this->assertEquals('paramvalue', $result->parameters[0]->value);
+        $this->assertEquals('paramvalue', $result->parameters[0]->getValue());
 
     }
 
@@ -211,12 +211,12 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
         $this->assertEquals(2, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
-        $this->assertEquals('paramvalue', $result->parameters[0]->value);
+        $this->assertEquals('paramvalue', $result->parameters[0]->getValue());
         $this->assertEquals('PARAMNAME2', $result->parameters[1]->name);
-        $this->assertEquals('paramvalue2', $result->parameters[1]->value);
+        $this->assertEquals('paramvalue2', $result->parameters[1]->getValue());
 
     }
 
@@ -227,10 +227,10 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
         $this->assertEquals(1, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
-        $this->assertEquals('paramvalue', $result->parameters[0]->value);
+        $this->assertEquals('paramvalue', $result->parameters[0]->getValue());
 
     }
     function testReadPropertyParameterNewLines() {
@@ -240,11 +240,11 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
 
         $this->assertEquals(1, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
-        $this->assertEquals("paramvalue1\nvalue2\\nvalue3", $result->parameters[0]->value);
+        $this->assertEquals("paramvalue1\nvalue2\\nvalue3", $result->parameters[0]->getValue());
 
     }
 
@@ -255,10 +255,10 @@ class ReaderTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('Sabre\\VObject\\Property', $result);
         $this->assertEquals('PROPNAME', $result->name);
-        $this->assertEquals('propValue', $result->value);
+        $this->assertEquals('propValue', $result->getValue());
         $this->assertEquals(1, count($result->parameters));
         $this->assertEquals('PARAMNAME', $result->parameters[0]->name);
-        $this->assertEquals('param:value', $result->parameters[0]->value);
+        $this->assertEquals('param:value', $result->parameters[0]->getValue());
 
     }
 

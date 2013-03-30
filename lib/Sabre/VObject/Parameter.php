@@ -28,7 +28,7 @@ class Parameter extends Node {
      *
      * @var string
      */
-    public $value;
+    protected $value;
 
     /**
      * Sets up the object
@@ -81,7 +81,30 @@ class Parameter extends Node {
      */
     public function __toString() {
 
+        return $this->getValue();
+
+    }
+
+    /**
+     * Returns the parameter value. 
+     * 
+     * @return string 
+     */
+    public function getValue() {
+
         return $this->value;
+
+    }
+
+    /**
+     * Updates the parameter value 
+     * 
+     * @param string $value;
+     * @return void
+     */
+    public function setValue($value) {
+
+        $this->value = $value;
 
     }
 

@@ -24,8 +24,8 @@ class Text extends Property {
     /**
      * Updates the internal value.
      *
-     * The value is assumed to be unescaped. To set a compound value (multiple
-     * components) pass the value as an array.
+     * In case the property has multiple values, you can supply this as an
+     * array.
      *
      * @param string|array $value
      * @return void
@@ -45,10 +45,11 @@ class Text extends Property {
      */
     public function getValue() {
 
+        if (is_array($this->value) && count($this->value) === 1) {
+            return $this->value[0];
+        }
         return $this->value;
 
     }
-
-
 
 }

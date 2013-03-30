@@ -338,8 +338,8 @@ class RecurrenceIterator implements \Iterator {
         } else {
             $this->endDate = clone $this->startDate;
             if (isset($this->baseEvent->DURATION)) {
-                $this->endDate->add(DateTimeParser::parse($this->baseEvent->DURATION->value));
-            } elseif ($this->baseEvent->DTSTART->getDateType()===Property\DateTime::DATE) {
+                $this->endDate->add(DateTimeParser::parse((string)$this->baseEvent->DURATION));
+            } elseif ($this->baseEvent->DTSTART instanceof Property\Date) {
                 $this->endDate->modify('+1 day');
             }
         }
@@ -445,7 +445,7 @@ class RecurrenceIterator implements \Iterator {
         if (isset($this->baseEvent->EXDATE)) {
             foreach($this->baseEvent->EXDATE as $exDate) {
 
-                foreach(explode(',', (string)$exDate) as $exceptionDate) {
+                foreach($exDate->getValues() as $exceptionDate) {
 
                     $this->exceptionDates[] =
                         DateTimeParser::parse($exceptionDate, $this->startDate->getTimeZone());
@@ -519,9 +519,9 @@ class RecurrenceIterator implements \Iterator {
         unset($event->RDATE);
         unset($event->EXRULE);
 
-        $event->DTSTART->setDateTime($this->getDTStart(), $event->DTSTART->getDateType());
+        $event->DTSTART->setDateTime($this->getDTStart());
         if (isset($event->DTEND)) {
-            $event->DTEND->setDateTime($this->getDtEnd(), $event->DTSTART->getDateType());
+            $event->DTEND->setDateTime($this->getDtEnd());
         }
         if ($this->counter > 0) {
             $event->{'RECURRENCE-ID'} = (string)$event->DTSTART;

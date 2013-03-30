@@ -354,7 +354,7 @@ class Component extends Node {
                 $this->children[] = $value;
             }
         } elseif (is_scalar($value)) {
-            $property = Property::create($name,$value);
+            $property = Property::create($name, $value);
             $property->parent = $this;
             if (!is_null($overWrite)) {
                 $this->children[$overWrite] = $property;

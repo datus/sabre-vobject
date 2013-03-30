@@ -116,10 +116,14 @@ class VCalendar extends VObject\Component {
         foreach($newEvents as $newEvent) {
 
             foreach($newEvent->children as $child) {
-                if ($child instanceof VObject\Property\DateTime &&
-                    $child->getDateType() == VObject\Property\DateTime::LOCALTZ) {
-                        $child->setDateTime($child->getDateTime(),VObject\Property\DateTime::UTC);
+                if ($child instanceof VObject\Property\DateTime) {
+                    $dt = $child->getDateTime();
+                    if (!is_array($dt)) $dt = array($dt);
+                    foreach($dt as $current) {
+                        $current->setTimeZone(new \DateTimeZone('UTC'));
                     }
+                    $child->setDateTime($dt);
+                }
             }
 
             $this->add($newEvent);

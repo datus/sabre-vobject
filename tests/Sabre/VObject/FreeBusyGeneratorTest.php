@@ -226,7 +226,7 @@ ICS;
 
         $result = $gen->getResult();
 
-        $this->assertEquals('PUBLISH', $result->METHOD->value);
+        $this->assertEquals('PUBLISH', $result->METHOD->getValue());
 
     }
 

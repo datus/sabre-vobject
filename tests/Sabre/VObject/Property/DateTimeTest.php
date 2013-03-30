@@ -14,24 +14,22 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $elem = new DateTime('DTSTART');
         $elem->setDateTime($dt);
 
-        $this->assertEquals('19850704T013000', $elem->value);
+        $this->assertEquals('19850704T013000', $elem->getValue());
         $this->assertEquals('Europe/Amsterdam', (string)$elem['TZID']);
-        $this->assertEquals('DATE-TIME', (string)$elem['VALUE']);
 
     }
 
-    function testSetDateTimeLOCAL() {
+    function testSetDateTimeFloating() {
 
         $tz = new \DateTimeZone('Europe/Amsterdam');
         $dt = new \DateTime('1985-07-04 01:30:00', $tz);
         $dt->setTimeZone($tz);
 
         $elem = new DateTime('DTSTART');
-        $elem->setDateTime($dt, DateTime::LOCAL);
+        $elem->setDateTime($dt, true);
 
-        $this->assertEquals('19850704T013000', $elem->value);
+        $this->assertEquals('19850704T013000', $elem->getValue());
         $this->assertNull($elem['TZID']);
-        $this->assertEquals('DATE-TIME', (string)$elem['VALUE']);
 
     }
 
@@ -42,11 +40,10 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $dt->setTimeZone($tz);
 
         $elem = new DateTime('DTSTART');
-        $elem->setDateTime($dt, DateTime::UTC);
+        $elem->setDateTime($dt);
 
-        $this->assertEquals('19850704T013000Z', $elem->value);
+        $this->assertEquals('19850704T013000Z', $elem->getValue());
         $this->assertNull($elem['TZID']);
-        $this->assertEquals('DATE-TIME', (string)$elem['VALUE']);
 
     }
 
@@ -57,40 +54,10 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $dt->setTimeZone($tz);
 
         $elem = new DateTime('DTSTART');
-        $elem->setDateTime($dt, DateTime::LOCALTZ);
+        $elem->setDateTime($dt);
 
-        $this->assertEquals('19850704T013000', $elem->value);
+        $this->assertEquals('19850704T013000', $elem->getValue());
         $this->assertEquals('Europe/Amsterdam', (string)$elem['TZID']);
-        $this->assertEquals('DATE-TIME', (string)$elem['VALUE']);
-
-    }
-
-    function testSetDateTimeDATE() {
-
-        $tz = new \DateTimeZone('Europe/Amsterdam');
-        $dt = new \DateTime('1985-07-04 01:30:00', $tz);
-        $dt->setTimeZone($tz);
-
-        $elem = new DateTime('DTSTART');
-        $elem->setDateTime($dt, DateTime::DATE);
-
-        $this->assertEquals('19850704', $elem->value);
-        $this->assertNull($elem['TZID']);
-        $this->assertEquals('DATE', (string)$elem['VALUE']);
-
-    }
-
-    /**
-     * @expectedException InvalidArgumentException
-     */
-    function testSetDateTimeInvalid() {
-
-        $tz = new \DateTimeZone('Europe/Amsterdam');
-        $dt = new \DateTime('1985-07-04 01:30:00', $tz);
-        $dt->setTimeZone($tz);
-
-        $elem = new DateTime('DTSTART');
-        $elem->setDateTime($dt, 7);
 
     }
 
@@ -113,7 +80,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $dt = $elem->getDateTime();
 
         $this->assertNull($dt);
-        $this->assertNull($elem->getDateType());
 
     }
 
@@ -124,7 +90,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertEquals('1985-07-04 00:00:00', $dt->format('Y-m-d H:i:s'));
-        $this->assertEquals(DateTime::DATE, $elem->getDateType());
 
     }
 
@@ -136,7 +101,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
 
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertEquals('1985-07-04 01:30:00', $dt->format('Y-m-d H:i:s'));
-        $this->assertEquals(DateTime::LOCAL, $elem->getDateType());
 
     }
 
@@ -148,7 +112,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertEquals('1985-07-04 01:30:00', $dt->format('Y-m-d H:i:s'));
         $this->assertEquals('UTC', $dt->getTimeZone()->getName());
-        $this->assertEquals(DateTime::UTC, $elem->getDateType());
 
     }
 
@@ -162,7 +125,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertEquals('1985-07-04 01:30:00', $dt->format('Y-m-d H:i:s'));
         $this->assertEquals('Europe/Amsterdam', $dt->getTimeZone()->getName());
-        $this->assertEquals(DateTime::LOCALTZ, $elem->getDateType());
 
     }
 
@@ -198,7 +160,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertEquals('1985-07-04 01:30:00', $dt->format('Y-m-d H:i:s'));
         $this->assertEquals('Europe/Amsterdam', $dt->getTimeZone()->getName());
-        $this->assertEquals(DateTime::LOCALTZ, $elem->getDateType());
 
     }
 
@@ -227,7 +188,6 @@ class DateTimeTest extends \PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('DateTime', $dt);
         $this->assertEquals('1985-07-04 01:30:00', $dt->format('Y-m-d H:i:s'));
         $this->assertEquals('Canada/Eastern', $dt->getTimeZone()->getName());
-        $this->assertEquals(DateTime::LOCALTZ, $elem->getDateType());
         date_default_timezone_set($default);
 
     }

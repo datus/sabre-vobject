@@ -47,30 +47,49 @@ abstract class Property extends Node {
      *
      * @var string
      */
-    protected $delimiter = ';';
+    static $delimiter = ';';
 
     /**
-     * If properties are added to this map, they will be automatically mapped
-     * to their respective classes, if parsed by the reader or constructed with
-     * the 'create' method.
+     * Default value types per property.
+     */
+    static $defaultValueType = array(
+
+        // iCalendar
+        "COMPLETED"     => "DATE-TIME",
+        "CREATED"       => "DATE-TIME",
+        "DTEND"         => "AutoDate",
+        "DTSTAMP"       => "DATE-TIME",
+        "DTSTART"       => "AutoDate",
+        "DUE"           => "DATE-TIME",
+        "DURATION"      => "DURATION",
+        "EXDATE"        => "DATE-TIME",
+        "LAST-MODIFIED" => "DATE-TIME",
+        "FREEBUSY"      => "PERIOD",
+        "RECURRENCE-ID" => "DATE-TIME",
+        "TRIGGER"       => "AutoDate",
+    );
+
+    /**
+     * Value type -> class mapping
      *
      * @var array
      */
-    static public $classMap = array(
-        'COMPLETED'     => 'Sabre\\VObject\\Property\\DateTime',
-        'CREATED'       => 'Sabre\\VObject\\Property\\DateTime',
-        'DTEND'         => 'Sabre\\VObject\\Property\\DateTime',
-        'DTSTAMP'       => 'Sabre\\VObject\\Property\\DateTime',
-        'DTSTART'       => 'Sabre\\VObject\\Property\\DateTime',
-        'DUE'           => 'Sabre\\VObject\\Property\\DateTime',
-        'EXDATE'        => 'Sabre\\VObject\\Property\\MultiDateTime',
-        'LAST-MODIFIED' => 'Sabre\\VObject\\Property\\DateTime',
-        'RECURRENCE-ID' => 'Sabre\\VObject\\Property\\DateTime',
-        'TRIGGER'       => 'Sabre\\VObject\\Property\\DateTime',
-        'N'             => 'Sabre\\VObject\\Property\\Compound',
-        'ORG'           => 'Sabre\\VObject\\Property\\Compound',
-        'ADR'           => 'Sabre\\VObject\\Property\\Compound',
-        'CATEGORIES'    => 'Sabre\\VObject\\Property\\Compound',
+    static $valueTypeMap = array(
+        "TEXT"      => "Text",
+        "DATE"      => "Date",
+        "DATE-TIME" => "DateTime",
+        // Not yet implemented
+        // BINARY
+        // BOOLEAN
+        // CAL-ADDRESS
+        // DURATION
+        // FLOAT
+        // INTEGER
+        // PERIOD
+        // RECUR
+        // TIME
+        // URI
+        // UTC-OFFSET
     );
 
     /**
@@ -96,19 +115,14 @@ abstract class Property extends Node {
             list($group, $shortName) = explode('.', $shortName);
         }
 
-        if (isset(self::$classMap[$shortName])) {
-            return new self::$classMap[$shortName]($name, $value, $parameters);
-        } else {
-            return new Property\Text($name, $value, $parameters);
-        }
+        $class = self::getClassForProperty($shortName, $value, $parameters);
+        return new $class($name, $value, $parameters);
 
     }
 
     /**
      * Creates a new property, based on a raw value as it may be embedded
      * within a vCard or iCalendar object.
-     *
-     * No de-escaping has been done.
      *
      * @param string $name
      * @param string $value
@@ -124,13 +138,67 @@ abstract class Property extends Node {
             list($group, $shortName) = explode('.', $shortName);
         }
 
-        if (isset(self::$classMap[$shortName])) {
-            $class = self::$classMap[$shortName];
-            return $class::deserialize($name, $value, $parameters);
-        } else {
-            // Defaulting to TEXT properties.
-            return Property\Text::deserialize($name, $value, $parameters);
+        $class = self::getClassForProperty($shortName, $value, $parameters);
+        return $class::deserialize($name, $value, $parameters);
+
+    }
+
+    /**
+     * Returns the correct class for a property.
+     *
+     * @param mixed $name Name of the property (e.g.: ADR, without a group).
+     * @param mixed $value Property value
+     * @param array $parameters
+     * @return string
+     */
+    static public function getClassForProperty($name, $value, array $parameters) {
+
+        $valueParam = null;
+
+        // First, lets see if there's a VALUE="" parameter.
+        foreach($parameters as $parameter) {
+            if ($parameter->name === "VALUE") {
+                $valueParam = strtoupper($parameter->getValue());
+                break;
+            }
         }
+
+        // Check the default value types for the property name.
+        if (!$valueParam) {
+            if (isset(self::$defaultValueType[$name])) {
+                $valueParam = self::$defaultValueType[$name];
+            }
+        }
+
+        /**
+         * This one is special. Rather than relying on the user to specify the
+         * correct thing, we automatically detect these values
+         */
+        if ($valueParam === 'AutoDate') {
+            if ($value[0] === 'P' || $value[0] ==='-' && $value[1] === 'P') {
+                // its a DURATION.
+                $valueParam = 'DURATION';
+            } elseif (strlen($value)===8) {
+                // It's a DATE
+                $valueParam = 'DATE';
+            } else {
+                // It must be a DATE-TIME
+                $valueParam = 'DATE-TIME';
+            }
+            $parameters[] = new Parameter('VALUE', $valueParam);
+
+        }
+
+        $class = null;
+        if ($valueParam && isset(self::$valueTypeMap[$valueParam])) {
+            $class = self::$valueTypeMap[$valueParam];
+        } else {
+            // Return text by default.
+            $class = 'Text';
+        }
+
+        return 'Sabre\\VObject\\Property\\' . $class;
+
     }
 
     /**
@@ -146,10 +214,6 @@ abstract class Property extends Node {
      * @param array $parameters
      */
     public function __construct($name, $value = null, array $parameters = array()) {
-
-        if (!is_scalar($value) && !is_null($value)) {
-            throw new \InvalidArgumentException('The value argument must be scalar or null');
-        }
 
         $name = strtoupper($name);
         $group = null;
@@ -167,7 +231,11 @@ abstract class Property extends Node {
             }
 
             foreach($paramValues as $paramValue) {
-                $this->add($paramName, $paramValue);
+                if ($paramValue instanceof Parameter) {
+                    $this->add($paramValue);
+                } else {
+                    $this->add($paramName, $paramValue);
+                }
             }
 
         }
@@ -193,6 +261,19 @@ abstract class Property extends Node {
      * @return string|array
      */
     abstract public function getValue();
+
+    /**
+     * Returns the current value as an array, regardless if there were 1 or
+     * more values in this property.
+     *
+     * @return array
+     */
+    public function getValues() {
+
+        $val = $this->getValue();
+        return is_array($val)?$val:array($val);
+
+    }
 
     /**
      * Turns the object back into a serialized blob.
@@ -252,7 +333,7 @@ abstract class Property extends Node {
 
         }
 
-        return implode($this->delimiter, $value);
+        return implode(static::$delimiter, $value);
 
     }
 
@@ -264,7 +345,7 @@ abstract class Property extends Node {
      * @param array $parameters
      * @return Property
      */
-    public function deserialize($name, $value, array $parameters) {
+    static public function deserialize($name, $value, array $parameters) {
 
         // Tiny parser. Hope it's not too slow
         $output = array();
@@ -277,8 +358,8 @@ abstract class Property extends Node {
                // We encountered an escape character, so we need to grab
                 // the next character to find out it's meaning.
                 switch($value[$pos+1]) {
-                    case '\n' :
-                    case '\N' :
+                    case 'n' :
+                    case 'N' :
                         $lastValue.="\n";
                         break;
                     // This captures a \; \, \\ and any other char.
@@ -290,7 +371,7 @@ abstract class Property extends Node {
                 // Increment the position 1 extra.
                 $pos++;
 
-            } elseif ($value[$pos]===$this->delimiter) {
+            } elseif ($value[$pos]===static::$delimiter) {
 
                 // Multi-value separator
                 $output[] = $lastValue;
@@ -307,7 +388,7 @@ abstract class Property extends Node {
 
         $output[] = $lastValue;
 
-        return new self($name, $output, $parameters);
+        return new static($name, $output, $parameters);
 
     }
 
@@ -334,7 +415,7 @@ abstract class Property extends Node {
             }
             $item->parent = $this;
             $this->parameters[] = $item;
-        } elseif(is_string($item)) {
+        } elseif(is_scalar($item)) {
 
             $parameter = new Parameter($item,$itemValue);
             $parameter->parent = $this;
@@ -342,7 +423,7 @@ abstract class Property extends Node {
 
         } else {
 
-            throw new \InvalidArgumentException('The first argument must either be a Node a string');
+            throw new \InvalidArgumentException('The first argument must either be a Node or a scalar');
 
         }
 
@@ -459,7 +540,10 @@ abstract class Property extends Node {
      */
     public function __toString() {
 
-        return (string)$this->getValue();
+        $val = $this->getValue();
+        // in order to make a sane representation of arrays, we simply add the
+        // delimiters again.
+        return is_array($val) ? implode(static::$delimiter, $val) : (string)$val;
 
     }
 
@@ -500,7 +584,7 @@ abstract class Property extends Node {
         $warnings = array();
 
         // Checking if our value is UTF-8
-        if (!StringUtil::isUTF8($this->value)) {
+        if (!StringUtil::isUTF8((string)$this)) {
             $warnings[] = array(
                 'level' => 1,
                 'message' => 'Property is not valid UTF-8!',
