@@ -308,6 +308,12 @@ abstract class Parser {
      */
     protected function char(&$char) {
 
+//         if ($this->match('/./A', $out)) {
+//             $char = $out[0];
+//             return true;
+//         }
+//         return false;
+
         if (isset($this->line[$this->linePos])) {
             $char = $this->line[$this->linePos];
             $this->advance(1);
@@ -351,7 +357,7 @@ abstract class Parser {
      */
     protected function match($regex, &$ret) {
 
-        if (preg_match($regex, $this->line, $ret, null, $this->linesPos)) {
+        if (preg_match($regex, $this->line, $ret, null, $this->linePos)) {
             $this->advance(strlen($ret[0]));
 
             return true;
@@ -383,6 +389,8 @@ abstract class Parser {
      */
     protected function literal($expect) {
 
+//         return $this->match('/' . preg_quote($expect) . '/A', $ignore);
+
         if (isset($this->line[$this->linePos]) && $this->line[$this->linePos] === $expect) {
             // literal character is the first character in buffer
             $this->advance(1);
@@ -390,7 +398,7 @@ abstract class Parser {
         }
         return false;
 
-        // return $this->match('/' . preg_quote($expect) . '/A', $ignore);
+
     }
 
     /**
@@ -401,6 +409,12 @@ abstract class Parser {
      * @return boolean
      */
     protected function until($end, &$out) {
+
+//         if ($this->match('/(.*)' . preg_quote($end) . '/A', $match)) {
+//             $out = $match[1];
+//             return true;
+//         }
+//         return false;
 
         $pos = strpos($this->line, $end, $this->linePos);
         if ($pos === false) {
