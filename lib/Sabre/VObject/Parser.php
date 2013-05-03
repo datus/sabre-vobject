@@ -216,16 +216,12 @@ abstract class Parser {
     protected function readIntoComponent($component) {
 
         do {
-            $pos = $this->tell();
-
             try{
                 $parsed = $this->readComponentOrProperty();
             }
             catch(ParseException $error) {
                 if ($this->options & self::OPTION_IGNORE_INVALID_LINES) {
-                    $this->seek($pos);
-
-                    $this->readLine();
+                    $this->remainder($unused);
                     continue;
                 }
                 throw $error;
@@ -327,30 +323,16 @@ abstract class Parser {
      * @param string $str
      * @return ParseException
      */
-    abstract protected function createException($error);
+    protected function createException($error) {
 
-    /**
-     * read remainder of the current line from the buffer (line break will not be included and advance behind line break)
-     *
-     * @return string
-     * @throws \Exception if the buffer is already drained (end-of-file)
-     */
-    abstract protected function readLine();
+        $lineNr = $this->getLineNr();
+        $line = $this->line;
 
-    /**
-     * get current position in buffer
-     *
-     * @return int
-     */
-    abstract protected function tell();
+        // include marker at our current position in this line
+        $line = substr($line, 0, $this->linePos) . '↦' . substr($line, $this->linePos);
 
-    /**
-     * set buffer position
-     *
-     * @param int $pos
-     * @throws \Exception
-     */
-    abstract protected function seek($pos);
+        return new ParseException('Invalid VObject: ' . $error . ': Line ' . $lineNr . ' did not follow the icalendar/vcard format:' . var_export($line, true));
+    }
 
     /**
      * check if buffer is drained (end-of-file)
