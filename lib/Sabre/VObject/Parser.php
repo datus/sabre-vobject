@@ -252,8 +252,8 @@ abstract class Parser {
 
         $this->line = '';
 
-        if (!$this->bufferMatch('/(.*(?:\n[ \t].+)*)(?:\n)?/A', $match)) {
-            throw new Exception('Unable to read next logical line into buffer');
+        if (!$this->bufferMatch('/(.*(?:\n[ \t].+)*)\n/A', $match)) {
+            throw new \Exception('Unable to read next logical line into buffer');
         }
         $this->line = $this->unfold($match[1]);
         $this->linePos = 0;
@@ -276,14 +276,14 @@ abstract class Parser {
             try {
                 $this->bufferLineLogical();
             }
-            catch (Exception $e) {
+            catch (\Exception $e) {
             }
         }
     }
 
     protected function remainderRaw(&$line) {
 
-        throw new Exception('TO BE DONE');
+        throw new \Exception('TO BE DONE');
     }
 
     abstract protected function bufferMatch($regex, &$match);
@@ -297,7 +297,7 @@ abstract class Parser {
     protected function normalizeNewlines($data) {
 
         // TODO: skip empty lines?
-        return str_replace(array("\r\n", "\r"),"\n", $data);
+        return rtrim(str_replace(array("\r\n", "\r"),"\n", $data), "\n") . "\n";
     }
 
     /**
