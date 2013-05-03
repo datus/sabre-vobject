@@ -42,7 +42,7 @@ abstract class Parser {
     protected $options = 0;
 
     protected $line = '';
-    protected $linesPos = 0;
+    protected $linePos = 0;
 
     /**
      * reads either a whole Component (BEGIN:{NAME} to END:{NAME}) or a single Property
@@ -142,7 +142,7 @@ abstract class Parser {
         }
 
         // TODO: whole logic line should now have been consumed, pre-process next line
-        // $this->bufferLineLogical();
+        $this->bufferLineLogical();
 
         $property = Property::create($propertyName, $propertyValue);
         foreach ($propertyParams as $param) {
@@ -221,7 +221,6 @@ abstract class Parser {
             }
             catch(ParseException $error) {
                 if ($this->options & self::OPTION_IGNORE_INVALID_LINES) {
-                    $this->remainder($unused);
                     continue;
                 }
                 throw $error;
@@ -250,10 +249,9 @@ abstract class Parser {
      */
     protected function bufferLineLogical() {
 
-        $this->line = '';
-
         if (!$this->bufferMatch('/(.*(?:\n[ \t].+)*)\n/A', $match)) {
-            throw new \Exception('Unable to read next logical line into buffer');
+            $this->line = '';
+            return;
         }
         $this->line = $this->unfold($match[1]);
         $this->linePos = 0;
@@ -263,27 +261,15 @@ abstract class Parser {
 
         if (isset($this->line[$this->linePos])) {
             $line = substr($this->line, $this->linePos);
-            $this->advance(strlen($line));
+            $this->linePos += strlen($line);
             return true;
         }
         return false;
     }
 
-    protected function advance($len) {
-        $this->linePos += $len;
-
-        if (!isset($this->line[$this->linePos])) {
-            try {
-                $this->bufferLineLogical();
-            }
-            catch (\Exception $e) {
-            }
-        }
-    }
-
     protected function remainderRaw(&$line) {
 
-        throw new \Exception('TO BE DONE');
+        throw $this->createException('TO BE DONE');
     }
 
     abstract protected function bufferMatch($regex, &$match);
@@ -316,7 +302,7 @@ abstract class Parser {
 
         if (isset($this->line[$this->linePos])) {
             $char = $this->line[$this->linePos];
-            $this->advance(1);
+            $this->linePos += 1;
             return true;
         }
 
@@ -333,6 +319,9 @@ abstract class Parser {
 
         $lineNr = $this->getLineNr();
         $line = $this->line;
+
+        // this line failed, so make sure to load next one into buffer
+        $this->bufferLineLogical();
 
         // include marker at our current position in this line
         $line = substr($line, 0, $this->linePos) . '↦' . substr($line, $this->linePos);
@@ -358,7 +347,7 @@ abstract class Parser {
     protected function match($regex, &$ret) {
 
         if (preg_match($regex, $this->line, $ret, null, $this->linePos)) {
-            $this->advance(strlen($ret[0]));
+            $this->linePos += strlen($ret[0]);
 
             return true;
         }
@@ -393,7 +382,7 @@ abstract class Parser {
 
         if (isset($this->line[$this->linePos]) && $this->line[$this->linePos] === $expect) {
             // literal character is the first character in buffer
-            $this->advance(1);
+            $this->linePos += 1;
             return true;
         }
         return false;
@@ -422,7 +411,7 @@ abstract class Parser {
         }
 
         $out = substr($this->line, $this->linePos, ($pos - $this->linePos));
-        $this->advance(1);
+        $this->linePos = $pos + 1;
 
         return true;
     }
