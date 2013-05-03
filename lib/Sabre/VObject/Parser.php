@@ -237,7 +237,7 @@ abstract class Parser {
 
             $component->add($parsed);
 
-            if ($this->eof())
+            if ($this->line === '')
                 throw new ParseException('Invalid VObject. Document ended prematurely. Expected: "END:' . $component->name.'"');
 
         } while(true);
@@ -249,6 +249,8 @@ abstract class Parser {
      * read next unfolded, logical line into line buffer
      */
     protected function bufferLineLogical() {
+
+        $this->line = '';
 
         if (!$this->bufferMatch('/(.*(?:\n[ \t].+)*)(?:\n)?/A', $match)) {
             throw new Exception('Unable to read next logical line into buffer');
@@ -275,8 +277,6 @@ abstract class Parser {
                 $this->bufferLineLogical();
             }
             catch (Exception $e) {
-                $line = '';
-                $linePos = 0;
             }
         }
     }
@@ -333,13 +333,6 @@ abstract class Parser {
 
         return new ParseException('Invalid VObject: ' . $error . ': Line ' . $lineNr . ' did not follow the icalendar/vcard format:' . var_export($line, true));
     }
-
-    /**
-     * check if buffer is drained (end-of-file)
-     *
-     * @return boolean
-     */
-    abstract protected function eof();
 
     /**
      * get line number for given buffer position

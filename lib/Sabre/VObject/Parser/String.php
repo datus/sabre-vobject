@@ -58,16 +58,6 @@ class String extends VObject\Parser {
     }
 
     /**
-     * check if buffer is drained (end-of-file)
-     *
-     * @return boolean
-     */
-    protected function eof() {
-
-        return ($this->pos >= $this->length);
-    }
-
-    /**
      * get line number for given buffer position
      *
      * @return int
