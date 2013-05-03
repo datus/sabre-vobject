@@ -53,29 +53,8 @@ class String extends VObject\Parser {
         $this->length = strlen($this->buffer);
         $this->pos = 0;
         $this->options = $options;
-    }
 
-    /**
-     * read a single character from the buffer (and advance behind char)
-     *
-     * @param string $char
-     * @return boolean
-     */
-    protected function char(&$char) {
-
-        if ($this->eof()) {
-            return false;
-        }
-
-        $tmp = substr($this->buffer, $this->pos, 3);
-        if ($tmp[0] === "\n" && ($tmp[1] === ' ' || $tmp[1] === "\t")) {
-            $char = $tmp[2];
-            $this->pos += 3;
-        } else {
-            $char = $tmp[0];
-            $this->pos += 1;
-        }
-        return true;
+        $this->bufferLineLogical();
     }
 
     /**
@@ -91,23 +70,10 @@ class String extends VObject\Parser {
         if ($this->buffer === '') {
             $line = '';
         } else {
-            $pos = $this->tell();
-
-            // jump to start of line
-            $nl = strrpos(substr($this->buffer, 0, $pos), "\n");
-            if ($nl === false) {
-                $startpos = 0;
-            } else {
-                $startpos = $nl + 1;
-            }
-
-            $this->seek($startpos);
-            $line = $this->readLine();
-            $this->seek($pos);
+            $line = $this->line;
 
             // include marker at our current position in this line
-            $offset = $pos - $startpos;
-            $line = substr($line, 0, $offset) . '↦' . substr($line, $offset);
+            $line = substr($line, 0, $this->linePos) . '↦' . substr($line, $this->linePos);
         }
 
         return new ParseException('Invalid VObject: ' . $error . ': Line ' . $lineNr . ' did not follow the icalendar/vcard format:' . var_export($line, true));
@@ -187,15 +153,7 @@ class String extends VObject\Parser {
         return substr_count($this->buffer, "\n", 0, $this->pos) + 1;
     }
 
-    /**
-     * try to match given regex on current buffer position (and advance behind match)
-     *
-     * @param string $regex
-     * @param array  $ret
-     * @return boolean
-     * @uses preg_match()
-     */
-    protected function match($regex, &$ret) {
+    protected function bufferMatch($regex, &$ret) {
 
         if (preg_match($regex, $this->buffer, $ret, null, $this->pos)) {
             $this->pos += strlen($ret[0]);
@@ -203,47 +161,5 @@ class String extends VObject\Parser {
             return true;
         }
         return false;
-    }
-
-    /**
-     * improved version to match given literal character in buffer (and advance behind literal)
-     *
-     * @param string $expect
-     * @return boolean
-     */
-    protected function literal($expect) {
-
-        if (isset($this->buffer[$this->pos])) {
-            if ($this->buffer[$this->pos] === $expect) {
-                // literal character is the first character in buffer
-                $this->pos += 1;
-                return true;
-            } else if (isset($this->buffer[$this->pos + 2]) && $this->buffer[$this->pos + 2] === $expect && $this->buffer[$this->pos] === "\n" && ($this->buffer[$this->pos + 1] === ' ' || $this->buffer[$this->pos + 1] === "\t")) {
-                // literal character is right behind line fold
-                $this->pos += 3;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * improved version to read from buffer until $end is found ($end will not be returned and advance behind end)
-     *
-     * @param string $end
-     * @param string $out
-     * @return boolean
-     */
-    protected function until($end, &$out) {
-
-        $pos = strpos($this->buffer, $end, $this->pos);
-        if ($pos === false) {
-            return false;
-        }
-
-        $out = $this->unfold(substr($this->buffer, $this->pos, ($pos - $this->pos)));
-        $this->pos = $pos + strlen($end);
-
-        return true;
     }
 }

@@ -41,6 +41,9 @@ abstract class Parser {
      */
     protected $options = 0;
 
+    protected $line = '';
+    protected $linesPos = 0;
+
     /**
      * reads either a whole Component (BEGIN:{NAME} to END:{NAME}) or a single Property
      *
@@ -107,16 +110,16 @@ abstract class Parser {
         }
 
         // match colon + remainder of line + perform unfolding to concat next lines
-        if (!$this->match('/:(.*(?:\n[ \t].+)*)(?:\n)?/A', $match)) {
+        if (!$this->literal(':')) {
             throw $this->createException('Expected colon and property value');
         }
-        $propertyValue = $match[1];
 
         if ($isQuotedPrintable) {
+            $this->remainderRaw($propertyValue);
             // quoted-printable soft line break at line end => try to read next lines
             while (substr($propertyValue, -1) === '=') {
                 // TODO: use single match instead of looping (performance)
-                if ($this->match('/(.*)(?:\n)?/A', $match)) {
+                if ($this->bufferMatch('/(.*)(?:\n)?/A', $match)) {
                     $propertyValue .= "\n" . $match[1];
                 } else {
                     throw $this->createException('');
@@ -126,6 +129,8 @@ abstract class Parser {
             $propertyValue = preg_replace('/=\n[ \t]?/', '', $propertyValue);
             $propertyValue = $this->unfold($propertyValue);
         } else {
+            $this->remainder($propertyValue);
+
             // unescape backslash-escaped values
             $propertyValue = preg_replace_callback('#(\\\\(\\\\|N|n))#',function($matches) {
                 if ($matches[2]==='n' || $matches[2]==='N') {
@@ -133,8 +138,11 @@ abstract class Parser {
                 } else {
                     return $matches[2];
                 }
-            }, $this->unfold($propertyValue));
+            }, $propertyValue);
         }
+
+        // TODO: whole logic line should now have been consumed, pre-process next line
+        // $this->bufferLineLogical();
 
         $property = Property::create($propertyName, $propertyValue);
         foreach ($propertyParams as $param) {
@@ -158,10 +166,10 @@ abstract class Parser {
         }
         $paramValue = null;
 
-        // optionally match equal sign + optional quote start
-        if ($this->match('/(?:\n[ \t])?=((?:\n[ \t])?\")?/A', $match)) {
+        // optionally match equal sign
+        if ($this->literal('=')) {
             // parameter value is enclosed in quotes
-            if (isset($match[1])) {
+            if ($this->literal('"')) {
                 // TODO: escaped quotes?
                 if (!$this->until('"', $paramValue)) {
                     throw $this->createException('Missing parameter quote end delimiter');
@@ -242,6 +250,49 @@ abstract class Parser {
     }
 
     /**
+     * read next unfolded, logical line into line buffer
+     */
+    protected function bufferLineLogical() {
+
+        if (!$this->bufferMatch('/(.*(?:\n[ \t].+)*)(?:\n)?/A', $match)) {
+            throw new Exception('Unable to read next logical line into buffer');
+        }
+        $this->line = $this->unfold($match[1]);
+        $this->linePos = 0;
+    }
+
+    protected function remainder(&$line) {
+
+        if (isset($this->line[$this->linePos])) {
+            $line = substr($this->line, $this->linePos);
+            $this->advance(strlen($line));
+            return true;
+        }
+        return false;
+    }
+
+    protected function advance($len) {
+        $this->linePos += $len;
+
+        if (!isset($this->line[$this->linePos])) {
+            try {
+                $this->bufferLineLogical();
+            }
+            catch (Exception $e) {
+                $line = '';
+                $linePos = 0;
+            }
+        }
+    }
+
+    protected function remainderRaw(&$line) {
+
+        throw new Exception('TO BE DONE');
+    }
+
+    abstract protected function bufferMatch($regex, &$match);
+
+    /**
      * normalize all line breaks (CRLF and mac CR) as unix LF only
      *
      * @param string $data
@@ -259,7 +310,16 @@ abstract class Parser {
      * @param string $char
      * @return boolean
      */
-    abstract protected function char(&$char);
+    protected function char(&$char) {
+
+        if (isset($this->line[$this->linePos])) {
+            $char = $this->line[$this->linePos];
+            $this->advance(1);
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * create ParseException along with given $error
@@ -314,7 +374,15 @@ abstract class Parser {
      * @return boolean
      * @uses preg_match()
      */
-    abstract protected function match($regex, &$ret);
+    protected function match($regex, &$ret) {
+
+        if (preg_match($regex, $this->line, $ret, null, $this->linesPos)) {
+            $this->advance(strlen($ret[0]));
+
+            return true;
+        }
+        return false;
+    }
 
     /**
      * match any number of the given tokens (and advance behind tokens)
@@ -325,8 +393,8 @@ abstract class Parser {
      */
     protected function tokens($token, &$out) {
 
-        if ($this->match('/((?:\n[ \t])?[' . $token . ']+(?:\n[ \t][ '. $token . ']+)*)/Ai', $match)) {
-            $out = $this->unfold($match[1]);
+        if ($this->match('/([' . $token . ']+)/Ai', $match)) {
+            $out = $match[1];
             return true;
         }
         return false;
@@ -340,7 +408,14 @@ abstract class Parser {
      */
     protected function literal($expect) {
 
-        return $this->match('/(?:\\n[ \\t])?' . preg_quote($expect) . '/A', $ignore);
+        if (isset($this->line[$this->linePos]) && $this->line[$this->linePos] === $expect) {
+            // literal character is the first character in buffer
+            $this->advance(1);
+            return true;
+        }
+        return false;
+
+        // return $this->match('/' . preg_quote($expect) . '/A', $ignore);
     }
 
     /**
@@ -352,11 +427,15 @@ abstract class Parser {
      */
     protected function until($end, &$out) {
 
-        if ($this->match('/(.*?)' . preg_quote($end) . '/A', $match)) {
-            $out = $this->unfold($match[1]);
-            return true;
+        $pos = strpos($this->line, $end, $this->linePos);
+        if ($pos === false) {
+            return false;
         }
-        return false;
+
+        $out = substr($this->line, $this->linePos, ($pos - $this->linePos));
+        $this->advance(1);
+
+        return true;
     }
 
     protected function unfold($str) {
