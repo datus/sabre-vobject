@@ -31,12 +31,7 @@ class String extends VObject\Parser {
      */
     protected $pos;
 
-    /**
-     * total length of input buffer
-     *
-     * @var int
-     */
-    protected $length;
+    protected $unfoldings = array();
 
     /**
      * Instanciate a StringParser
@@ -50,11 +45,41 @@ class String extends VObject\Parser {
     public function __construct($buffer, $options = 0) {
 
         $this->buffer = $this->normalizeNewlines($buffer);
-        $this->length = strlen($this->buffer);
         $this->pos = 0;
         $this->options = $options;
 
+        //$this->buffer = $this->unfold($this->buffer);
+        // perform unfolding, but remember all unfolding positions in order to
+        // be able to reconstruct original (folded) line for quoted printable
+        $this->buffer = str_replace("\n\t", "\n ", $this->buffer);
+        $pos = 0;
+        do {
+            $pos = strpos($this->buffer, "\n ", $pos);
+            if ($pos === false) {
+                break;
+            }
+
+            $this->unfoldings []= $pos;
+            $this->buffer = substr($this->buffer, 0, $pos) . substr($this->buffer, $pos + 2);
+        } while (true);
+
+
         $this->bufferLineLogical();
+    }
+
+    /**
+     * read next unfolded, logical line into line buffer
+     */
+    protected function bufferLineLogical() {
+
+        $pos = strpos($this->buffer, "\n", $this->pos);
+        if ($pos === false) {
+            $this->line = '';
+        } else {
+            $this->line = substr($this->buffer, $this->pos, ($pos - $this->pos));
+            $this->linePos = 0;
+            $this->pos = $pos + 1;
+        }
     }
 
     /**
