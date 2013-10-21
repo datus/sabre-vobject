@@ -7,6 +7,7 @@ use
     Sabre\VObject\EofException,
     Sabre\VObject\Component,
     Sabre\VObject\Property,
+    Sabre\VObject\Document,
     Sabre\VObject\Component\VCalendar,
     Sabre\VObject\Component\VCard;
 
@@ -375,6 +376,14 @@ class MimeDir extends Parser {
 
         foreach($namelessParameters as $namelessParameter) {
             $propObj->add(null, $namelessParameter);
+        }
+
+        // vCard 2.1 defines a CHARSET parameter for text properties.
+        // If its definition is missing and we're in OPTION_FORGIVING mode, set
+        // a dummy charset in order to guess correct charset later.
+        if ($this->options & self::OPTION_FORGIVING && $propObj['CHARSET'] === null && $this->root->getDocumentType() !== Document::VCARD21) {
+            //$propObj->add('CHARSET', 'GUESS_UNKNOWN');
+            //$propObj->guessCharset(true);
         }
 
         if (strtoupper($propObj['ENCODING']) === 'QUOTED-PRINTABLE') {

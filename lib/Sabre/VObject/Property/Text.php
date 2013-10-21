@@ -99,6 +99,13 @@ class Text extends Property {
         $param = $this['charset'];
         if ($param !== null) {
             $charset = strtoupper((string)$param);
+
+            // vCard 2.1 parser sets a dummy CHARSET if OPTION_FORGVING is set
+            // in order to guess correct CHARSET definition.
+            if ($charset === 'GUESS_UNKNOWN') {
+                $charset = mb_detect_encoding($value , array('UTF-8','ISO-8859-1'), true);
+            }
+
             if ($charset !== 'UTF-8') {
                 $value = mb_convert_encoding($value, 'UTF-8', $charset);
             }
